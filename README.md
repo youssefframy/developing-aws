@@ -57,3 +57,13 @@ aws s3 sync ./website s3://your-bucket-name
   }
 ]
 ```
+
+## Notes
+
+_Make sure you have the write permission in order to execute any of these lambda functions_
+
+_Enable the CORS for all of the methods inside amazon API Gateway_
+
+_Increase the timeout to the lambda function in case you got any timeout issue_
+
+_Make sure to test your functions when you deployed them_
