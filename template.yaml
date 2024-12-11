@@ -1,0 +1,131 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Wallpaper Gallery Application
+
+Parameters:
+  WebsiteBucketName:
+    Type: String
+    Default: wallpaper-gallery-website-123
+  WallpaperBucketName:
+    Type: String
+    Default: wallpaper-gallery-images-123
+
+Resources:
+  # S3 Bucket for Website Hosting
+  WebsiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref WebsiteBucketName
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ["*"]
+            AllowedMethods: [GET, PUT, POST, DELETE, HEAD]
+            AllowedOrigins: ["*"]
+            MaxAge: 3000
+
+  # S3 Bucket for Wallpapers
+  WallpaperBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref WallpaperBucketName
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ["*"]
+            AllowedMethods: [GET, PUT, POST, DELETE, HEAD]
+            AllowedOrigins: ["*"]
+            ExposeHeaders:
+              - ETag
+              - x-amz-server-side-encryption
+              - x-amz-request-id
+              - x-amz-id-2
+            MaxAge: 3000
+
+  # DynamoDB Table
+  WallpaperTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: wallpaper-gallery
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  # Lambda Functions
+  ListFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/list_function/
+      Handler: app.lambda_handler
+      Runtime: python3.11
+      Timeout: 30
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref WallpaperTable
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref WallpaperTable
+      Events:
+        ListAPI:
+          Type: Api
+          Properties:
+            Path: /wallpapers
+            Method: get
+            Cors:
+              AllowMethods: "'*'"
+              AllowHeaders: "'*'"
+              AllowOrigin: "'*'"
+
+  UpdateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/update_wallpaper_table/
+      Handler: app.lambda_handler
+      Runtime: python3.11
+      Timeout: 30
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref WallpaperTable
+          BUCKET_NAME: !Ref WallpaperBucket
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WallpaperTable
+        - S3CrudPolicy:
+            BucketName: !Ref WallpaperBucket
+      Events:
+        UploadAPI:
+          Type: Api
+          Properties:
+            Path: /wallpapers
+            Method: post
+            Cors:
+              AllowMethods: "'*'"
+              AllowHeaders: "'*'"
+              AllowOrigin: "'*'"
+
+  # Website Bucket Policy
+  WebsiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebsiteBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action: s3:GetObject
+            Resource: !Sub "${WebsiteBucket.Arn}/*"
+
+Outputs:
+  WebsiteURL:
+    Description: URL for website hosted on S3
+    Value: !GetAtt WebsiteBucket.WebsiteURL
+
+  ApiURL:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
