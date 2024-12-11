@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Upload Wallpaper</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <nav>
+        <a href="upload.html" class="active">Upload</a>
+        <a href="list.html">View All</a>
+        <button onclick="logout()" class="logout-btn">Logout</button>
+      </nav>
+      <div class="upload-form">
+        <h2>Upload New Wallpaper</h2>
+        <form id="uploadForm">
+          <input type="text" id="imageName" placeholder="Image Name" required />
+          <input type="text" id="category" placeholder="Category" required />
+          <input type="file" id="imageFile" accept="image/*" required />
+          <button type="submit">Upload</button>
+        </form>
+        <div id="message"></div>
+      </div>
+    </div>
+    <script src="upload.js"></script>
+  </body>
+</html>
